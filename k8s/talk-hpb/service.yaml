@@ -1,0 +1,20 @@
+# Feste oeffentliche IP fuer das HPB. IONOS haengt die reservierte IP als
+# zusaetzliche IP an einen Node und zieht sie bei einem Node-Austausch mit um.
+# Die IP muss im IP Manager reserviert sein (gleiche Location wie der Cluster)
+# und darf NICHT in den Public IPs eines Node Pools stehen.
+apiVersion: v1
+kind: Service
+metadata:
+  name: talk-hpb
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 217.160.35.119
+  # Client-IP erhalten (wichtig fuer TURN/ICE) und kein Umweg ueber andere Nodes
+  externalTrafficPolicy: Local
+  selector:
+    app: talk-hpb
+  ports:
+    - { name: http,     port: 80,   targetPort: 80,   protocol: TCP }
+    - { name: https,    port: 443,  targetPort: 443,  protocol: TCP }
+    - { name: turn-tcp, port: 3478, targetPort: 3478, protocol: TCP }
+    - { name: turn-udp, port: 3478, targetPort: 3478, protocol: UDP }

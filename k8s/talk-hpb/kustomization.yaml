@@ -5,6 +5,7 @@ resources:
   - namespace.yaml
   - pvc.yaml
   - deployment.yaml
+  - service.yaml
   - cronjob-restart.yaml
 configMapGenerator:
   - name: talk-hpb-config

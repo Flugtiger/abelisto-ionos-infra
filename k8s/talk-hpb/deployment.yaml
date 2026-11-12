@@ -7,7 +7,7 @@ metadata:
 spec:
   replicas: 1            # HPB (signaling+janus+nats+eturnal) laeuft als ein Pod
   strategy:
-    type: Recreate       # hostPorts koennen nicht doppelt belegt werden
+    type: Recreate       # RWO-Volume (Caddy) und nur eine Instanz des HPB
   selector:
     matchLabels:
       app: talk-hpb
@@ -16,10 +16,9 @@ spec:
       labels:
         app: talk-hpb
     spec:
+      # Erreichbar ueber den LoadBalancer-Service (service.yaml) mit fester IP.
       # Kein hostNetwork: IONOS belegt Port 8081 auf jedem Node (nginx-proxy fuer
-      # den API-Server), den auch der Signaling-Server fest nutzt. Stattdessen
-      # hostPorts wie beim Docker-Setup von Nextcloud AIO: 80/443 (Caddy) und
-      # 3478 TCP/UDP (TURN). 8081 bleibt pod-intern.
+      # den API-Server), den auch der Signaling-Server fest nutzt.
       nodeSelector:
         talk-hpb: "true"   # Label im DCD am Node Pool setzen (ueberlebt Node-Austausch)
       terminationGracePeriodSeconds: 30
@@ -34,8 +33,8 @@ spec:
                 name: talk-hpb-secrets
           ports:
             - { name: signaling, containerPort: 8081, protocol: TCP }
-            - { name: turn-tcp, containerPort: 3478, hostPort: 3478, protocol: TCP }
-            - { name: turn-udp, containerPort: 3478, hostPort: 3478, protocol: UDP }
+            - { name: turn-tcp, containerPort: 3478, protocol: TCP }
+            - { name: turn-udp, containerPort: 3478, protocol: UDP }
           readinessProbe:
             httpGet: { path: /api/v1/welcome, port: 8081 }
             periodSeconds: 10
@@ -55,8 +54,8 @@ spec:
             - name: TALK_HOST
               valueFrom: { configMapKeyRef: { name: talk-hpb-config, key: TALK_HOST } }
           ports:
-            - { name: http, containerPort: 80, hostPort: 80, protocol: TCP }
-            - { name: https, containerPort: 443, hostPort: 443, protocol: TCP }
+            - { name: http, containerPort: 80, protocol: TCP }
+            - { name: https, containerPort: 443, protocol: TCP }
           resources:
             requests: { cpu: 50m, memory: 64Mi }
             limits:   { memory: 256Mi }
