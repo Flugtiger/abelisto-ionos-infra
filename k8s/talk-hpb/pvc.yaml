@@ -1,0 +1,12 @@
+# Persistenz fuer Caddy (Let's-Encrypt-Zertifikate), damit bei Pod-Neustarts
+# nicht jedes Mal neu ausgestellt wird (Rate Limits).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: caddy-data
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: ionos-enterprise-ssd
+  resources:
+    requests:
+      storage: 1Gi

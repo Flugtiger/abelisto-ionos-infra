@@ -1,0 +1,62 @@
+# Startet das HPB jeden Sonntag um 04:00 (Europe/Berlin) neu.
+# Durch image: ...:latest + imagePullPolicy: Always wird dabei das neueste
+# aio-talk-Image gezogen. Laufende Anrufe brechen kurz ab.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: talk-hpb-restarter
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: talk-hpb-restarter
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    resourceNames: ["talk-hpb"]
+    verbs: ["get", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: talk-hpb-restarter
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: talk-hpb-restarter
+subjects:
+  - kind: ServiceAccount
+    name: talk-hpb-restarter
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: talk-hpb-weekly-restart
+spec:
+  schedule: "0 4 * * 0"
+  timeZone: Europe/Berlin
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 604800
+      template:
+        spec:
+          serviceAccountName: talk-hpb-restarter
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+          containers:
+            - name: kubectl
+              image: registry.k8s.io/kubectl:v1.34.2
+              # Entrypoint des Images ist kubectl
+              args: ["-n", "talk-hpb", "rollout", "restart", "deployment/talk-hpb"]
+              resources:
+                requests: { cpu: 10m, memory: 32Mi }
+                limits:   { memory: 128Mi }

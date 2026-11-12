@@ -1,0 +1,4 @@
+{$TALK_HOST} {
+	# Signaling-Server (aio-talk) lauscht nur lokal auf 8081
+	reverse_proxy 127.0.0.1:8081
+}
